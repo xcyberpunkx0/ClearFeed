@@ -1,0 +1,29 @@
+{
+  "manifest_version": 3,
+  "name": "ClearFeed",
+  "version": "1.0.0",
+  "description": "Premium productivity suite for YouTube. Silences the noise, hides Shorts, and adds a deep-work dashboard for focused viewing.",
+  "permissions": ["storage"],
+  "action": {
+    "default_popup": "popup.html",
+    "default_icon": "icons/png/image.png"
+  },
+  "content_scripts": [
+    {
+      "matches": ["*://*.youtube.com/*"],
+      "js": ["content.js"],
+      "run_at": "document_start"
+    }
+  ],
+  "icons": {
+    "16": "icons/png/image.png",
+    "48": "icons/png/image.png",
+    "128": "icons/png/image.png"
+  },
+  "web_accessible_resources": [
+    {
+      "resources": ["icons/svg/icon.svg", "icons/png/image.png"],
+      "matches": ["*://*.youtube.com/*"]
+    }
+  ]
+}

@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>ClearFeed Settings</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Playfair+Display:ital,wght@0,600;1,600&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --grad-a: #3ea6ff;
+      --grad-b: #a78bfa;
+      --bg: #0f0f0f;
+      --bg-card: #1a1a1a;
+      --tx: #f1f1f1;
+      --tx-muted: #717171;
+      --accent-grad: linear-gradient(135deg, var(--grad-a), var(--grad-b));
+    }
+
+    body {
+      width: 280px;
+      padding: 24px;
+      font-family: 'Inter', sans-serif;
+      background-color: var(--bg);
+      color: var(--tx);
+      margin: 0;
+      overflow: hidden;
+    }
+
+    /* Glass effect (may be limited by chrome popup window constraints) */
+    .container {
+      position: relative;
+    }
+
+    h2 {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 12px;
+      margin: 0 0 24px 0;
+    }
+
+    .brand-icon {
+      width: 44px;
+      height: 44px;
+    }
+
+    .brand-text {
+      font-family: 'Inter', sans-serif;
+      font-size: 0.85rem;
+      font-weight: 800;
+      letter-spacing: 6px; /* Increased for more premium look */
+      text-indent: 6px; /* Compels perfect centering */
+      text-transform: uppercase;
+      color: var(--tx);
+      display: block;
+      width: 100%;
+      text-align: center;
+      margin-top: 4px;
+    }
+
+    .setting-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 16px;
+      padding: 12px 16px;
+      background: var(--bg-card);
+      border-radius: 12px;
+      border: 1px solid rgba(255, 255, 255, 0.05);
+      transition: transform 0.2s ease;
+    }
+
+    .setting-item:hover {
+      transform: translateY(-2px);
+      background: #222;
+    }
+
+    .setting-label {
+      font-size: 0.95rem;
+      font-weight: 500;
+      letter-spacing: -0.2px;
+    }
+
+    /* Premium Toggle */
+    .switch {
+      position: relative;
+      display: inline-block;
+      width: 44px;
+      height: 24px;
+    }
+
+    .switch input {
+      opacity: 0;
+      width: 0;
+      height: 0;
+    }
+
+    .slider {
+      position: absolute;
+      cursor: pointer;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background-color: #333;
+      transition: .3s cubic-bezier(0.4, 0, 0.2, 1);
+      border-radius: 20px;
+    }
+
+    .slider:before {
+      position: absolute;
+      content: "";
+      height: 18px;
+      width: 18px;
+      left: 3px;
+      bottom: 3px;
+      background-color: white;
+      transition: .3s cubic-bezier(0.4, 0, 0.2, 1);
+      border-radius: 50%;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+    }
+
+    input:checked + .slider {
+      background: var(--accent-grad);
+    }
+
+    input:checked + .slider:before {
+      transform: translateX(20px);
+    }
+
+    footer {
+      margin-top: 24px;
+      font-size: 0.75rem;
+      font-weight: 500;
+      color: var(--tx-muted);
+      text-align: center;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+    }
+
+    /* Subtle glow behind title */
+    .glow {
+      position: absolute;
+      top: -40px;
+      left: -40px;
+      width: 100px;
+      height: 100px;
+      background: var(--grad-a);
+      filter: blur(60px);
+      opacity: 0.15;
+      pointer-events: none;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="glow"></div>
+    <h2>
+      <img class="brand-icon" src="icons/svg/icon.svg" alt="ClearFeed">
+      <span class="brand-text">ClearFeed</span>
+    </h2>
+    
+    <div class="setting-item">
+      <span class="setting-label">Hide Shorts</span>
+      <label class="switch">
+        <input type="checkbox" id="hideShorts" checked>
+        <span class="slider"></span>
+      </label>
+    </div>
+
+    <div class="setting-item">
+      <span class="setting-label">Hide Sidebar</span>
+      <label class="switch">
+        <input type="checkbox" id="hideSidebar" checked>
+        <span class="slider"></span>
+      </label>
+    </div>
+
+    <footer>
+      Silence the noise
+    </footer>
+  </div>
+
+  <script src="popup.js"></script>
+</body>
+</html>
