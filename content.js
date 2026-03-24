@@ -1,5 +1,5 @@
 /**
- * ClearFeed - content.js (v6.7)
+ * ClearFeed - content.js (v6.8)
  * Production-Ready "Negative Cut" Identity
  * 
  * ARCHITECTURE:
@@ -175,15 +175,22 @@ function createDashboard() {
   const fLabel = UI.create('div', 'cf-row');
   fLabel.style.gap = '12px';
   const fIcon = UI.create('span'); fIcon.style.display = 'flex';
-  UI.injectIcon(fIcon, ICONS.eyeOff);
+  const isFocused = config.hideShorts !== false || config.hideSidebar !== false;
+  UI.injectIcon(fIcon, isFocused ? ICONS.eyeOff : ICONS.eye);
   fLabel.appendChild(fIcon);
   fLabel.appendChild(UI.create('span', 'cf-focus-text', 'Focus Mode'));
-  const toggle = UI.create('button', 'cf-toggle active');
+  const toggle = UI.create('button', `cf-toggle${isFocused ? ' active' : ''}`);
   toggle.appendChild(UI.create('div', 'cf-toggle-kb'));
   toggle.onclick = () => {
     const act = toggle.classList.toggle('active');
     fIcon.innerHTML = '';
     UI.injectIcon(fIcon, act ? ICONS.eyeOff : ICONS.eye);
+    
+    // Core Fix: Actually apply state to CSS Engine
+    config.hideShorts = act;
+    config.hideSidebar = act;
+    chrome.storage.sync.set({ hideShorts: act, hideSidebar: act });
+    applyProductionStyles(); 
   };
   focusCard.appendChild(fLabel); focusCard.appendChild(toggle);
 
