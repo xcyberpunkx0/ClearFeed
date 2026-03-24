@@ -1,5 +1,5 @@
 /**
- * ClearFeed - content.js (v1.0.3)
+ * ClearFeed - content.js (v1.0.4)
  * Production-Ready "Negative Cut" Identity
  * 
  * ARCHITECTURE:
@@ -79,11 +79,18 @@ function applyProductionStyles() {
   // Sidebar Hiding (Watch Page Only - Gentle Placeholder Strategy)
   if (config.hideSidebar && window.location.pathname.includes('/watch')) {
     css += `
-      #secondary #related, ytd-watch-next-secondary-results-renderer { 
+      #secondary #related, ytd-watch-next-secondary-results-renderer, 
+      ytd-playlist-panel-renderer, ytd-engagement-panel-section-list-renderer, ytd-live-chat-frame { 
         visibility: hidden !important; opacity: 0 !important; pointer-events: none !important;
         height: 1px !important; overflow: hidden !important; display: block !important;
       }
       #secondary.ytd-watch-flexy { display: block !important; visibility: visible !important; }
+      #cf-dash { position: sticky; top: 72px; height: calc(100vh - 96px); }
+    `;
+  } else {
+    css += `
+      #cf-dash { position: relative; top: 0; height: auto; margin-bottom: 24px; }
+      #cf-dash .cf-timer-section { margin-top: 24px; }
     `;
   }
 
@@ -102,7 +109,6 @@ function applyProductionStyles() {
       --grad-a: #3ea6ff; --grad-b: #a78bfa;
     }
     #cf-dash {
-      position: sticky; top: 72px; height: calc(100vh - 96px);
       display: flex; flex-direction: column; font-family: 'Inter', sans-serif;
       color: var(--tx); background: var(--bg); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
       border-radius: 20px; padding: 24px; margin-right: 12px; overflow-y: auto; scrollbar-width: none;
