@@ -1,5 +1,5 @@
 /**
- * ClearFeed - content.js (v6.8)
+ * ClearFeed - content.js (v1.0.3)
  * Production-Ready "Negative Cut" Identity
  * 
  * ARCHITECTURE:
@@ -296,7 +296,7 @@ function syncUI() {
     return;
   }
 
-  const host = document.querySelector('#secondary');
+  const host = document.querySelector('ytd-watch-flexy #secondary');
   if (!host) return;
 
   const existing = document.getElementById(APP_ID);

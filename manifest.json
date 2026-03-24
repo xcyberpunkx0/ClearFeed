@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "ClearFeed",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "description": "Adds a focus dashboard with a Pomodoro timer and task list to YouTube, and hides Shorts and recommended videos.",
   "permissions": ["storage"],
   "action": {
