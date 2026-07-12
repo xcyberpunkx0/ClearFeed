@@ -1,6 +1,8 @@
 /**
  * ClearFeed - content.js (v1.1.0)
- * "Aurora Cut" Identity — Negative Cut × Chronograph
+ * OLED identity: true-black surfaces, Sora UI text, Doto dot-matrix display
+ * digits, and a user-selected gradient theme (THEMES / sync key 'theme') that
+ * tints every accent — clock, dial, toggles, chips, buttons, task spines.
  *
  * ARCHITECTURE:
  * 1. State: Settings + tasks; the timer lives in the service worker and is
@@ -16,11 +18,24 @@ const ZEN_ID = 'cf-zen';
 const STYLES_ID = 'cf-styles';
 const TASKS_KEY = 'cf-tasks';
 const TIMER_KEY = 'cf-timer-v2';
-const FONT_STACK = `-apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI Variable Text", "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif`;
-const MONO_STACK = `ui-monospace, "Cascadia Mono", "SF Mono", Consolas, monospace`;
-const SERIF_STACK = `Georgia, "Times New Roman", serif`;
+// Bundled identity fonts (declared in web_accessible_resources):
+// Sora carries all UI text, Doto is the dot-matrix display face for the
+// clock, countdown digits, and task indices.
+const FONT_STACK = `"Sora", "Roboto", "Arial", sans-serif`;
+const DOTO_STACK = `"Doto", "Consolas", monospace`;
+
+// Gradient theme presets — the user picks one in the popup (sync key 'theme').
+const THEMES = {
+  aurora: ['#3ea6ff', '#a78bfa'],
+  sunset: ['#ff6b6b', '#ffa94d'],
+  mint:   ['#34d399', '#22d3ee'],
+  rose:   ['#ec4899', '#8b5cf6'],
+  gold:   ['#fbbf24', '#f59e0b'],
+  ember:  ['#f43f5e', '#fb923c']
+};
 
 const SETTING_DEFAULTS = {
+  theme: 'aurora',
   focusArmed: true,
   zenMode: false,
   hideShorts: true,
@@ -185,161 +200,175 @@ function applyProductionStyles() {
     `;
   }
 
-  // Aurora Cut Theme & Layout
+  // Theme & Layout — OLED black + user-selected gradient
+  const grad = THEMES[config.theme] || THEMES.aurora;
   css += `
+    @font-face {
+      font-family: 'Sora';
+      font-style: normal;
+      font-weight: 100 800;
+      src: url('${chrome.runtime.getURL('fonts/sora.woff2')}') format('woff2');
+    }
+    @font-face {
+      font-family: 'Doto';
+      font-style: normal;
+      font-weight: 100 900;
+      src: url('${chrome.runtime.getURL('fonts/doto.woff2')}') format('woff2');
+    }
     #cf-dash, #cf-zen {
-      --bg: #faf8f3;
-      --tx: #0a0a0a; --tx2: #55524a; --tx3: #6e6a5f;
-      --hair: rgba(10,10,10,0.12); --hair-strong: rgba(10,10,10,0.3);
-      --grad-a: #3ea6ff; --grad-b: #a78bfa;
-      --grad: linear-gradient(135deg, #3ea6ff, #a78bfa);
-      --shadow: rgba(30, 25, 15, 0.12);
+      --grad-a: ${grad[0]}; --grad-b: ${grad[1]};
+      --grad: linear-gradient(135deg, var(--grad-a), var(--grad-b));
+      --bg: #ffffff;
+      --tx: #0f0f0f; --tx2: #606060;
+      --card: #f5f5f5; --chip: #f2f2f2; --chip-hover: #e5e5e5;
+      --hair: rgba(0, 0, 0, 0.1);
     }
     html[dark] #cf-dash, html[dark] #cf-zen {
-      --bg: #0a0a0a;
-      --tx: #f4f2ed; --tx2: #b5b1a8; --tx3: #8a877f;
-      --hair: rgba(244,242,237,0.12); --hair-strong: rgba(244,242,237,0.25);
-      --shadow: rgba(0, 0, 0, 0.35);
+      --bg: #000000;
+      --tx: #f1f1f1; --tx2: #999999;
+      --card: #111111; --chip: #161616; --chip-hover: #262626;
+      --hair: rgba(255, 255, 255, 0.14);
     }
     #cf-dash {
       display: flex; flex-direction: column; font-family: ${FONT_STACK};
       color: var(--tx); background: var(--bg);
-      border: 1px solid var(--hair); border-radius: 16px;
-      box-shadow: 0 8px 28px var(--shadow);
-      padding: 24px; margin-right: 12px; overflow-y: auto; scrollbar-width: none;
+      border: 1px solid var(--hair); border-radius: 12px;
+      padding: 20px; margin-right: 12px; overflow-y: auto; scrollbar-width: none;
     }
     #cf-dash::-webkit-scrollbar { display: none; }
-    #cf-dash :is(button, [tabindex], input):focus-visible, #cf-zen input:focus-visible { outline: 2px solid var(--grad-a); outline-offset: 3px; }
+    #cf-dash :is(button, [tabindex], input):focus-visible, #cf-zen input:focus-visible { outline: 2px solid var(--grad-a); outline-offset: 2px; }
 
     .cf-grad-ink {
-      background: var(--grad);
+      background-image: var(--grad);
       -webkit-background-clip: text; background-clip: text;
       -webkit-text-fill-color: transparent;
     }
 
     .cf-header {
       display: flex; justify-content: space-between; align-items: flex-start;
-      padding: 4px 0 18px; border-bottom: 1px solid var(--hair-strong);
+      padding: 2px 0 16px; border-bottom: 1px solid var(--hair);
     }
     .cf-clock {
-      font-family: ${SERIF_STACK};
-      font-size: 36px; font-weight: 400; letter-spacing: -0.5px; line-height: 1;
+      font-family: ${DOTO_STACK};
+      font-size: 38px; font-weight: 900; line-height: 1;
       font-variant-numeric: tabular-nums;
     }
-    .cf-label {
-      font-family: ${MONO_STACK}; font-size: 10px; font-weight: 500;
-      color: var(--tx3); letter-spacing: 2.5px; text-transform: uppercase; margin-top: 8px;
-    }
+    .cf-label { font-size: 11px; color: var(--tx2); margin-top: 7px; }
     .cf-live {
-      width: 8px; height: 8px; border-radius: 50%; background: var(--grad);
-      margin-top: 10px; opacity: 0.45; flex-shrink: 0;
+      width: 8px; height: 8px; border-radius: 50%; background: var(--tx2);
+      margin-top: 8px; opacity: 0.4; flex-shrink: 0; transition: 0.3s;
     }
-    .cf-live.on { opacity: 1; animation: cfGlow 2.4s ease-in-out infinite; }
-    @keyframes cfGlow {
-      0%, 100% { box-shadow: 0 0 4px rgba(122, 150, 255, 0.5); }
-      50% { box-shadow: 0 0 12px rgba(122, 150, 255, 0.95); }
-    }
+    .cf-live.on { opacity: 1; background: var(--grad); animation: cfGlow 2.4s ease-in-out infinite; }
+    @keyframes cfGlow { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
 
     .cf-focus-row {
       display: flex; justify-content: space-between; align-items: center;
-      padding: 16px 0; border-bottom: 1px solid var(--hair);
+      padding: 14px 0; border-bottom: 1px solid var(--hair);
     }
-    .cf-focus-text {
-      font-size: 13px; font-weight: 600; letter-spacing: 1.5px;
-      text-transform: uppercase; color: var(--tx);
-    }
+    .cf-focus-text { font-size: 13px; font-weight: 500; color: var(--tx); }
     .cf-tag {
-      font-family: ${MONO_STACK}; font-size: 13px; font-weight: 600; letter-spacing: 1px;
-      background: none; border: none; cursor: pointer; padding: 4px 0;
+      position: relative; width: 36px; height: 20px; flex-shrink: 0;
+      border: none; border-radius: 999px; cursor: pointer; padding: 0;
+      background: var(--chip-hover); transition: background 0.2s;
     }
-    .cf-tag.armed {
-      background: var(--grad);
-      -webkit-background-clip: text; background-clip: text;
-      -webkit-text-fill-color: transparent;
+    .cf-tag::after {
+      content: ''; position: absolute; top: 50%; left: 3px;
+      width: 14px; height: 14px; border-radius: 50%;
+      background: var(--bg); box-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+      transform: translateY(-50%); transition: transform 0.2s;
     }
-    .cf-tag.off { color: var(--tx3); }
+    .cf-tag.armed { background: var(--grad); }
+    .cf-tag.armed::after { transform: translate(16px, -50%); background: #fff; }
 
-    .cf-tasks { padding: 16px 0 6px; border-bottom: 1px solid var(--hair); }
-    .cf-tasks-title {
-      font-family: ${MONO_STACK}; font-size: 10px; font-weight: 500;
-      color: var(--tx3); letter-spacing: 2.5px; text-transform: uppercase;
-    }
+    .cf-tasks { padding: 14px 0 6px; border-bottom: 1px solid var(--hair); }
+    .cf-tasks-title { font-size: 12px; font-weight: 500; color: var(--tx2); letter-spacing: 0.3px; }
     .cf-add-btn {
-      background: none; border: 1px solid var(--hair-strong); border-radius: 50%;
-      width: 26px; height: 26px; color: var(--tx3); cursor: pointer;
-      font-family: inherit; font-size: 17px; line-height: 1; padding: 0;
+      background: var(--chip); border: none; border-radius: 50%;
+      width: 28px; height: 28px; color: var(--tx); cursor: pointer; padding: 0;
       display: inline-flex; align-items: center; justify-content: center;
+      transition: background 0.15s;
     }
+    .cf-add-btn:hover { background: var(--chip-hover); }
     .cf-add-in {
-      width: 100%; padding: 10px 16px; background: transparent;
-      border: 1px solid var(--hair-strong); border-radius: 999px;
+      width: 100%; padding: 9px 16px; background: transparent;
+      border: 1px solid var(--hair); border-radius: 999px;
       color: var(--tx); margin: 12px 0 4px; font-family: ${FONT_STACK}; font-size: 14px;
       box-sizing: border-box; outline: none;
     }
-    .cf-add-in::placeholder { color: var(--tx3); }
+    .cf-add-in:focus { border-color: var(--grad-a); }
+    .cf-add-in::placeholder { color: var(--tx2); }
     .cf-task {
-      padding: 9px 0; cursor: pointer; animation: cfIn 0.3s ease-out;
-      font-family: ${SERIF_STACK};
+      display: flex; align-items: center; gap: 10px;
+      background: var(--card); border-radius: 10px; padding: 10px 12px; margin: 8px 0;
+      cursor: pointer; animation: cfIn 0.3s ease-out;
     }
     @keyframes cfIn { from { opacity:0; transform: translateY(4px); } to { opacity:1; transform: translateY(0); } }
-    .cf-tnam { font-size: 16px; color: var(--tx); }
-    .cf-tnam::before { content: '\\2014\\00a0\\00a0'; color: var(--tx3); }
-    .cf-task.done .cf-tnam { text-decoration: line-through; color: var(--tx3); }
+    .cf-spine { width: 3px; height: 18px; border-radius: 2px; background: var(--grad); flex-shrink: 0; }
+    .cf-idx {
+      font-family: ${DOTO_STACK}; font-weight: 900; font-size: 13px;
+      width: 20px; flex-shrink: 0; font-variant-numeric: tabular-nums;
+    }
+    .cf-tnam { font-size: 13px; color: var(--tx); }
+    .cf-task.done .cf-tnam { text-decoration: line-through; color: var(--tx2); }
+    .cf-task.done .cf-spine, .cf-task.done .cf-idx { opacity: 0.35; }
 
-    .cf-timer-presets { display: flex; gap: 6px; margin-bottom: 16px; justify-content: center; }
+    .cf-timer-presets { display: flex; gap: 8px; margin: 16px 0 6px; justify-content: center; }
     .cf-preset {
-      font-family: ${MONO_STACK}; font-size: 12px; font-weight: 500;
-      padding: 6px 15px; border-radius: 999px; background: transparent;
-      border: 1px solid var(--hair); color: var(--tx3); cursor: pointer; transition: 0.2s;
+      font-family: ${FONT_STACK}; font-size: 12px; font-weight: 500;
+      padding: 6px 12px; border-radius: 999px; background: var(--chip);
+      border: none; color: var(--tx2); cursor: pointer; transition: 0.15s;
     }
-    .cf-preset:hover { border-color: var(--hair-strong); color: var(--tx2); }
-    .cf-preset.active {
-      border-color: var(--hair-strong);
-      background: var(--grad);
-      -webkit-background-clip: text; background-clip: text;
-      -webkit-text-fill-color: transparent;
-    }
+    .cf-preset:hover { background: var(--chip-hover); color: var(--tx); }
+    .cf-preset.active { background: var(--grad); color: #000; font-weight: 600; }
 
-    .cf-timer-ring { width: 140px; height: 140px; position: relative; margin: 20px auto; }
+    .cf-timer-section { padding: 20px 0 8px; }
+    .cf-timer-ring { margin: 4px 0 8px; }
     .cf-timer-ring.cf-done { animation: cfPulse 1.6s ease-in-out 2; }
-    @keyframes cfPulse { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.04); } }
+    @keyframes cfPulse { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.03); } }
     .cf-timer-digits {
-      font-family: ${MONO_STACK}; font-size: 28px; font-weight: 700;
-      letter-spacing: -0.5px; font-variant-numeric: tabular-nums;
+      font-family: ${DOTO_STACK}; font-size: 48px; font-weight: 900;
+      line-height: 1; text-align: center; font-variant-numeric: tabular-nums;
     }
-    .cf-timer-ring.cf-break #cf-timer-fill { stroke: var(--tx3); }
+    .cf-bar {
+      height: 5px; border-radius: 999px; background: var(--chip);
+      margin: 16px 0 2px; overflow: hidden;
+    }
+    #cf-timer-fill {
+      display: block; height: 100%; width: 0%; border-radius: 999px;
+      background: linear-gradient(90deg, var(--grad-a), var(--grad-b));
+      transition: width 0.5s ease;
+    }
+    .cf-timer-ring.cf-break #cf-timer-fill { background: var(--tx2); }
     .cf-timer-ring.cf-break .cf-timer-digits {
-      background: none; -webkit-text-fill-color: var(--tx2); color: var(--tx2);
+      background-image: none; -webkit-text-fill-color: var(--tx2);
     }
     .cf-btn {
-      font-family: ${MONO_STACK}; font-size: 13px; font-weight: 700; letter-spacing: 2px;
-      padding: 11px 36px; border-radius: 999px;
-      background: var(--grad); color: #0a0a0a;
-      border: none; cursor: pointer;
-      box-shadow: 0 2px 14px rgba(122, 150, 255, 0.35);
+      font-family: ${FONT_STACK}; font-size: 13px; font-weight: 600;
+      padding: 9px 26px; border-radius: 999px;
+      background: var(--grad); color: #000;
+      border: none; cursor: pointer; transition: opacity 0.15s;
     }
+    .cf-btn:hover { opacity: 0.88; }
 
     /* Zen homepage takeover */
     #cf-zen {
       position: fixed; top: 56px; left: 0; right: 0; bottom: 0; z-index: 600;
       display: flex; flex-direction: column; align-items: center; justify-content: center;
-      gap: 18px; background: #fff; font-family: ${FONT_STACK};
+      gap: 18px; background: var(--bg); font-family: ${FONT_STACK};
     }
-    html[dark] #cf-zen { background: #0f0f0f; }
     .cf-zen-mark {
-      font-family: ${SERIF_STACK}; font-style: italic; font-size: 44px; letter-spacing: -1px;
+      font-family: ${FONT_STACK};
+      font-size: 52px; font-weight: 700; letter-spacing: -1px;
     }
-    .cf-zen-label {
-      font-family: ${MONO_STACK}; font-size: 11px; letter-spacing: 3px;
-      text-transform: uppercase; color: var(--tx3);
-    }
+    .cf-zen-label { font-size: 14px; color: var(--tx2); }
     .cf-zen-in {
-      width: min(480px, 80vw); padding: 14px 24px; background: transparent;
-      border: 1px solid var(--hair-strong); border-radius: 999px;
+      width: min(480px, 80vw); padding: 13px 24px; background: transparent;
+      border: 1px solid var(--hair); border-radius: 999px;
       color: var(--tx); font-family: ${FONT_STACK}; font-size: 16px;
       box-sizing: border-box; outline: none; text-align: center;
     }
-    .cf-zen-in::placeholder { color: var(--tx3); }
+    .cf-zen-in:focus { border-color: var(--grad-a); }
+    .cf-zen-in::placeholder { color: var(--tx2); }
 
     @media (prefers-reduced-motion: reduce) {
       #cf-dash, #cf-dash *, #cf-zen, #cf-zen * { animation: none !important; transition: none !important; }
@@ -361,28 +390,29 @@ function renderTimer() {
   if (v) v.textContent = `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
 
   const f = document.getElementById('cf-timer-fill');
-  if (f) f.style.strokeDashoffset = 351.8 * (1 - (t.total - rem) / (t.total || 1));
+  if (f) f.style.width = `${(100 * (t.total - rem) / (t.total || 1)).toFixed(2)}%`;
 
   const ring = document.getElementById('cf-timer-ring');
   if (ring) ring.classList.toggle('cf-break', t.phase === 'break');
 
   const label = document.getElementById('cf-timer-label');
   if (label) {
-    label.textContent = t.phase === 'break'
-      ? (t.completed ? 'Break Over' : 'Break')
-      : (t.completed ? 'Session Complete' : 'T-Minus');
+    const status = t.phase === 'break'
+      ? (t.completed ? 'Break over' : 'Break')
+      : (t.completed ? 'Session complete' : 'Focus');
+    label.textContent = t.completed ? status : `${status} · Session ${t.session + 1}`;
   }
 
   const btn = document.getElementById('cf-timer-btn');
   if (btn) {
-    btn.textContent = t.running ? 'PAUSE'
-      : t.completed ? (t.phase === 'focus' ? (t.session % 4 === 0 ? 'BREAK·15M' : 'BREAK·5M') : 'BEGIN')
-      : rem > 0 && rem < t.total ? 'RESUME'
-      : t.phase === 'break' ? 'BREAK' : 'BEGIN';
+    btn.textContent = t.running ? 'Pause'
+      : t.completed ? (t.phase === 'focus' ? (t.session % 4 === 0 ? 'Start long break' : 'Start break') : 'Start focus')
+      : rem > 0 && rem < t.total ? 'Resume'
+      : t.phase === 'break' ? 'Start break' : 'Start';
   }
 
   const ses = document.getElementById('cf-ses-label');
-  if (ses) ses.textContent = `Deep·Work — Ses·${String(t.session + 1).padStart(2, '0')}`;
+  if (ses) ses.textContent = `Session ${t.session + 1}`;
 
   const dot = document.getElementById('cf-live-dot');
   if (dot) dot.classList.toggle('on', !!t.running);
@@ -405,7 +435,7 @@ function createDashboard() {
   const clock = UI.create('div', 'cf-clock cf-grad-ink'); clock.id = 'cf-clock-val';
   clock.textContent = new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
   hLeft.appendChild(clock);
-  const sesLabel = UI.create('div', 'cf-label', 'Deep·Work — Ses·01');
+  const sesLabel = UI.create('div', 'cf-label', 'Session 1');
   sesLabel.id = 'cf-ses-label';
   hLeft.appendChild(sesLabel);
   const liveDot = UI.create('div', 'cf-live'); liveDot.id = 'cf-live-dot';
@@ -418,9 +448,7 @@ function createDashboard() {
   tag.setAttribute('role', 'switch');
   tag.setAttribute('aria-label', 'Focus Mode');
   const setTag = (on) => {
-    tag.textContent = on ? '[ARMED]' : '[OFF]';
     tag.classList.toggle('armed', on);
-    tag.classList.toggle('off', !on);
     tag.setAttribute('aria-checked', String(on));
   };
   setTag(config.focusArmed);
@@ -437,7 +465,8 @@ function createDashboard() {
   const taskHeader = UI.create('div');
   taskHeader.style.cssText = 'display:flex; align-items:center; justify-content:space-between;';
   taskHeader.appendChild(UI.create('div', 'cf-tasks-title', 'Tasks'));
-  const addBtn = UI.create('button', 'cf-add-btn', '+');
+  const addBtn = UI.create('button', 'cf-add-btn');
+  addBtn.innerHTML = '<svg width="11" height="11" viewBox="0 0 11 11" aria-hidden="true"><path d="M5.5 1v9M1 5.5h9" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>';
   addBtn.setAttribute('aria-label', 'Add task');
   taskHeader.appendChild(addBtn);
 
@@ -450,12 +479,14 @@ function createDashboard() {
   const list = UI.create('div'); list.id = 'cf-task-list';
   const render = () => {
     list.innerHTML = '';
-    tasks.forEach((t) => {
+    tasks.forEach((t, i) => {
       const id = t.id;
       const item = UI.create('div', `cf-task${t.done ? ' done' : ''}`);
       item.setAttribute('role', 'checkbox');
       item.setAttribute('aria-checked', String(!!t.done));
       item.setAttribute('tabindex', '0');
+      item.appendChild(UI.create('span', 'cf-spine'));
+      item.appendChild(UI.create('span', 'cf-idx cf-grad-ink', String(i + 1).padStart(2, '0')));
       item.appendChild(UI.create('div', 'cf-tnam', t.name));
 
       item.onclick = () => {
@@ -484,6 +515,7 @@ function createDashboard() {
   taskWrap.appendChild(taskHeader); taskWrap.appendChild(addForm); taskWrap.appendChild(list);
 
   // Timer Component — chronograph tick dial, viewing the service worker's state
+  // margin-top:auto pins the timer to the panel's bottom on sticky watch pages.
   const timerWrap = UI.create('div', 'cf-timer-section'); timerWrap.style.marginTop = 'auto';
 
   const presets = UI.create('div', 'cf-timer-presets');
@@ -495,27 +527,21 @@ function createDashboard() {
     presets.appendChild(p);
   });
 
+  // Hero countdown: big centered digits over a thin gradient progress bar.
   const ring = UI.create('div', 'cf-timer-ring');
   ring.id = 'cf-timer-ring';
-  // Track: 30 tick marks (dasharray 2 + 9.727 divides the 351.8 circumference evenly).
   ring.innerHTML = `
-    <svg viewBox="0 0 130 130" style="width:140px; height:140px; transform:rotate(-90deg)">
-      <circle cx="65" cy="65" r="56" fill="none" stroke="var(--hair-strong)" stroke-width="4" stroke-dasharray="2 9.727" />
-      <circle id="cf-timer-fill" cx="65" cy="65" r="56" fill="none" stroke="url(#cf-timer-grad)" stroke-width="4" stroke-linecap="round" stroke-dasharray="351.8" stroke-dashoffset="351.8" style="transition: stroke-dashoffset 0.5s ease" />
-      <defs><linearGradient id="cf-timer-grad" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="var(--grad-a)"/><stop offset="100%" stop-color="var(--grad-b)"/></linearGradient></defs>
-    </svg>
-    <div style="position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center">
-      <div id="cf-timer-val" class="cf-timer-digits cf-grad-ink">25:00</div>
-      <div id="cf-timer-label" class="cf-label" style="margin-top:4px;">T-Minus</div>
-    </div>
+    <div id="cf-timer-val" class="cf-timer-digits cf-grad-ink">25:00</div>
+    <div id="cf-timer-label" class="cf-label" style="text-align:center; margin-top:6px;">Focus</div>
+    <div class="cf-bar"><div id="cf-timer-fill"></div></div>
   `;
 
-  const startBtn = UI.create('button', 'cf-btn', 'BEGIN');
+  const startBtn = UI.create('button', 'cf-btn', 'Start');
   startBtn.id = 'cf-timer-btn';
-  startBtn.style.display = 'block'; startBtn.style.margin = '20px auto 0';
+  startBtn.style.display = 'block'; startBtn.style.margin = '18px auto 0';
   startBtn.onclick = () => Timer.send({ cmd: 'timer.toggle' });
 
-  timerWrap.append(presets, ring, startBtn);
+  timerWrap.append(ring, presets, startBtn);
 
   dash.append(header, focusRow, taskWrap, timerWrap);
   renderTimer();
