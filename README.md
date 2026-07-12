@@ -1,28 +1,59 @@
-# ClearFeed 🛡️💎
+# ClearFeed
 
-**ClearFeed** is a premium productivity suite for YouTube, designed to "Silence the Noise" and help you establish a state of Deep Work. It features a stunning "Negative Cut" brand identity and a high-performance, lag-free architecture.
+**ClearFeed** turns YouTube into a focus tool. It hides the feeds that pull you off-course, and puts a Pomodoro timer, session tasks, and daily stats right beside the video — in an OLED-black dashboard that tints itself to your chosen gradient theme.
 
-## ✨ Key Features
+**[Install from the Chrome Web Store](https://chromewebstore.google.com/detail/clearfeed/pjhhcihepfhbglmkokbbiakkdnbaoiep)**
 
-- **🛡️ Distraction Remover**: Sourced via pure CSS for zero browser lag. Hides Shorts, related videos, and home-page shelves.
-- **🌌 Productivity Dashboard**: A sticky, glassmorphism sidebar (exclusive to watch pages) that keeps you focused.
-- **⏱️ Integrated Pomodoro**: A high-end timer built directly into your viewing experience.
-- **📝 Contextual Tasks**: Manage your focus-related tasks without leaving the video.
-- **🎭 Toggle-able Focus Mode**: Instantly switch off distractions with a premium UI toggle.
+![ClearFeed dashboard on a watch page](screenshots/cws/clearfeed-screenshot-1.jpg)
 
-## 🚀 Installation (Local Development)
+## Features
 
-1. Clone or download this repository.
-2. Open Chrome and navigate to `chrome://extensions/`.
-3. Enable **Developer Mode** (top-right toggle).
-4. Click **Load unpacked** and select the root directory of this project.
+### Focus dashboard (watch pages)
+- **Pomodoro timer** that runs in a background service worker — it keeps counting across tabs, reloads, and navigation, shows the minutes left on the toolbar badge, and sends a notification when a session or break ends. Breaks start after every focus session, with a long break every fourth.
+- **Session tasks** — a lightweight numbered task list; completed tasks strike through and clear themselves.
+- **Dot-matrix clock** and countdown set in Doto, with Sora for UI text (both bundled).
 
-## 🛠️ Tech Stack
+### Distraction removal
+Pure CSS injection, zero lag. Individually toggleable from the popup:
+- Shorts (everywhere)
+- Related videos sidebar, playlists, and live chat
+- Comments
+- Home feed
+- End cards
+- Notification bell
 
-- **Vanilla JavaScript**: High-performance DOM manipulation.
-- **CSS3 (Glassmorphism)**: Advanced backdrop filters and gradients for a premium feel.
-- **Chrome Extension V3**: Modern, secure architecture.
-- **MutationObserver Engine**: Surgical injection for zero-reload stability.
+### Gradient themes
+Six presets — Aurora, Sunset, Mint, Rose, Gold, Ember — selectable from the popup. The clock, timer, toggles, chips, and buttons all follow, and the choice syncs across your devices.
 
-## 📜 License
-The "Negative Cut" brand and ClearFeed software are provided for personal productivity use.
+### Zen mode
+Replaces the YouTube homepage with a single search box. Search with intention.
+
+### Weekly stats
+Focus time, sessions completed, tasks done, and Shorts hidden — charted for the week in the popup.
+
+![ClearFeed popup and themes](screenshots/cws/clearfeed-screenshot-3.jpg)
+
+## Installation
+
+**Chrome Web Store (recommended):** [ClearFeed](https://chromewebstore.google.com/detail/clearfeed/pjhhcihepfhbglmkokbbiakkdnbaoiep)
+
+**Manual / development:**
+1. Clone or download this repository (or grab the zip from [Releases](https://github.com/xcyberpunkx0/ClearFeed/releases)).
+2. Open `chrome://extensions/` and enable **Developer Mode**.
+3. Click **Load unpacked** and select the project root.
+
+## Tech
+
+- Vanilla JavaScript, Manifest V3
+- Background service worker owns the timer, badge, notifications, and stats; views read state from `chrome.storage` and re-render on change
+- CSS-only distraction removal, gated per-setting
+- MutationObserver engine coalesces YouTube's DOM churn into one sync per frame
+- Bundled fonts: [Sora](https://fonts.google.com/specimen/Sora), [Doto](https://fonts.google.com/specimen/Doto) (OFL)
+
+## Privacy
+
+Everything stays on your machine. No analytics, no external requests — see [PRIVACY_POLICY.md](PRIVACY_POLICY.md).
+
+## License
+
+ClearFeed is provided for personal productivity use.
