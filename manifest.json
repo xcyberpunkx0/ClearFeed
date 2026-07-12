@@ -25,7 +25,7 @@
   },
   "web_accessible_resources": [
     {
-      "resources": ["icons/svg/icon.svg", "icons/png/image.png"],
+      "resources": ["icons/svg/icon.svg", "icons/png/image.png", "fonts/sora.woff2", "fonts/doto.woff2"],
       "matches": ["*://*.youtube.com/*"]
     }
   ]

@@ -2,99 +2,130 @@
 <html>
 <head>
   <meta charset="UTF-8">
-  <title>ClearFeed Settings</title>
+  <title>ClearFeed</title>
   <style>
+    @font-face {
+      font-family: 'Sora';
+      font-style: normal;
+      font-weight: 100 800;
+      src: url('fonts/sora.woff2') format('woff2');
+    }
+    @font-face {
+      font-family: 'Doto';
+      font-style: normal;
+      font-weight: 100 900;
+      src: url('fonts/doto.woff2') format('woff2');
+    }
+
     :root {
-      --bg: #faf8f3;
-      --tx: #0a0a0a;
-      --tx-muted: #6e6a5f;
-      --hair: rgba(10, 10, 10, 0.12);
-      --hair-strong: rgba(10, 10, 10, 0.3);
       --grad-a: #3ea6ff;
       --grad-b: #a78bfa;
       --grad: linear-gradient(135deg, var(--grad-a), var(--grad-b));
+      --bg: #ffffff;
+      --tx: #0f0f0f;
+      --tx2: #606060;
+      --card: #f5f5f5;
+      --chip: #f2f2f2;
+      --chip-hover: #e5e5e5;
+      --hair: rgba(0, 0, 0, 0.1);
     }
 
     @media (prefers-color-scheme: dark) {
       :root {
-        --bg: #0a0a0a;
-        --tx: #f4f2ed;
-        --tx-muted: #8a877f;
-        --hair: rgba(244, 242, 237, 0.12);
-        --hair-strong: rgba(244, 242, 237, 0.25);
+        --bg: #000000;
+        --tx: #f1f1f1;
+        --tx2: #999999;
+        --card: #111111;
+        --chip: #161616;
+        --chip-hover: #262626;
+        --hair: rgba(255, 255, 255, 0.14);
       }
     }
 
     body {
       width: 300px;
-      padding: 22px 24px;
-      font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI Variable Text", "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+      padding: 18px 20px 20px;
+      font-family: 'Sora', 'Roboto', 'Arial', sans-serif;
       background-color: var(--bg);
       color: var(--tx);
       margin: 0;
     }
 
     header.brand {
-      text-align: center;
       padding-bottom: 14px;
-      border-bottom: 1px solid var(--hair-strong);
+      border-bottom: 1px solid var(--hair);
     }
 
     .wordmark {
-      font-family: Georgia, "Times New Roman", serif;
-      font-style: italic;
-      font-size: 1.7rem;
+      font-size: 24px;
+      font-weight: 700;
       letter-spacing: -0.5px;
-      background: var(--grad);
+      line-height: 1;
+      background-image: var(--grad);
       -webkit-background-clip: text;
       background-clip: text;
       -webkit-text-fill-color: transparent;
     }
 
-    .mono {
-      font-family: ui-monospace, "Cascadia Mono", "SF Mono", Consolas, monospace;
-    }
-
     #cf-timer-line {
-      font-family: ui-monospace, "Cascadia Mono", "SF Mono", Consolas, monospace;
-      font-size: 10px;
-      letter-spacing: 2.5px;
-      text-transform: uppercase;
-      color: var(--tx-muted);
-      margin-top: 8px;
+      font-size: 11px;
+      color: var(--tx2);
+      margin-top: 6px;
       font-variant-numeric: tabular-nums;
     }
 
     .section-label {
-      font-family: ui-monospace, "Cascadia Mono", "SF Mono", Consolas, monospace;
-      font-size: 9px;
-      letter-spacing: 2.5px;
-      text-transform: uppercase;
-      color: var(--tx-muted);
-      margin: 18px 0 2px;
+      font-size: 11px;
+      font-weight: 500;
+      color: var(--tx2);
+      letter-spacing: 0.3px;
+      margin: 16px 0 2px;
     }
+
+    /* Theme picker */
+    .swatches {
+      display: flex;
+      gap: 8px;
+      padding: 10px 0 2px;
+    }
+    .swatch {
+      width: 24px;
+      height: 24px;
+      border-radius: 50%;
+      border: 2px solid transparent;
+      cursor: pointer;
+      padding: 0;
+      box-sizing: border-box;
+      transition: transform 0.15s;
+    }
+    .swatch:hover { transform: scale(1.12); }
+    .swatch.on {
+      border-color: var(--tx);
+      box-shadow: 0 0 0 2px var(--bg) inset;
+    }
+    .swatch:focus-visible { outline: 2px solid var(--grad-a); outline-offset: 2px; }
 
     .setting-item {
       display: flex;
       justify-content: space-between;
       align-items: center;
-      padding: 12px 0;
+      padding: 10px 0;
       border-bottom: 1px solid var(--hair);
     }
 
     .setting-item.zen {
-      border-bottom: 1px solid var(--hair-strong);
-      padding: 14px 0;
+      padding: 12px 0;
     }
 
     .setting-label {
-      font-size: 11px;
-      font-weight: 600;
-      letter-spacing: 1.5px;
-      text-transform: uppercase;
+      font-size: 13px;
     }
 
-    /* Telemetry tag toggle: hidden checkbox + [ARMED]/[OFF] text */
+    .setting-item.zen .setting-label {
+      font-weight: 600;
+    }
+
+    /* Switch: hidden checkbox + track/knob */
     .switch {
       position: relative;
       display: inline-block;
@@ -111,29 +142,42 @@
     }
 
     .tag {
-      font-family: ui-monospace, "Cascadia Mono", "SF Mono", Consolas, monospace;
-      font-size: 12px;
-      font-weight: 600;
-      letter-spacing: 1px;
+      position: relative;
+      display: block;
+      width: 36px;
+      height: 20px;
+      border-radius: 999px;
+      background: var(--chip-hover);
+      transition: background 0.2s;
       pointer-events: none;
     }
 
     .tag::after {
-      content: '[OFF]';
-      color: var(--tx-muted);
+      content: '';
+      position: absolute;
+      top: 50%;
+      left: 3px;
+      width: 14px;
+      height: 14px;
+      border-radius: 50%;
+      background: var(--bg);
+      box-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+      transform: translateY(-50%);
+      transition: transform 0.2s;
+    }
+
+    input:checked + .tag {
+      background: var(--grad);
     }
 
     input:checked + .tag::after {
-      content: '[ARMED]';
-      background: var(--grad);
-      -webkit-background-clip: text;
-      background-clip: text;
-      -webkit-text-fill-color: transparent;
+      transform: translate(16px, -50%);
+      background: #fff;
     }
 
     input:focus-visible + .tag {
       outline: 2px solid var(--grad-a);
-      outline-offset: 3px;
+      outline-offset: 2px;
     }
 
     /* Stats */
@@ -161,38 +205,25 @@
       background: var(--grad);
       min-height: 2px;
     }
-    .bar.empty { background: var(--hair); }
+    .bar.empty { background: var(--chip); }
     .bar-day {
-      font-family: ui-monospace, "Cascadia Mono", "SF Mono", Consolas, monospace;
-      font-size: 8px;
-      letter-spacing: 1px;
-      color: var(--tx-muted);
+      font-family: 'Doto', monospace;
+      font-weight: 900;
+      font-size: 10px;
+      color: var(--tx2);
     }
-    .bar-col.today .bar-day { color: var(--tx); font-weight: 700; }
+    .bar-col.today .bar-day { color: var(--tx); }
 
     #cf-stats-totals {
-      font-family: ui-monospace, "Cascadia Mono", "SF Mono", Consolas, monospace;
-      font-size: 10px;
-      letter-spacing: 1px;
-      color: var(--tx-muted);
+      font-size: 11px;
+      color: var(--tx2);
       text-align: center;
       margin-top: 10px;
-      line-height: 1.7;
+      line-height: 1.8;
     }
     #cf-stats-totals b {
       color: var(--tx);
       font-weight: 600;
-    }
-
-    footer {
-      margin-top: 20px;
-      font-family: ui-monospace, "Cascadia Mono", "SF Mono", Consolas, monospace;
-      font-size: 8px;
-      font-weight: 500;
-      color: var(--tx-muted);
-      text-align: center;
-      letter-spacing: 2.5px;
-      text-transform: uppercase;
     }
 
     @media (prefers-reduced-motion: reduce) {
@@ -203,18 +234,21 @@
 <body>
   <header class="brand">
     <div class="wordmark">ClearFeed</div>
-    <div id="cf-timer-line">Idle — Ready</div>
+    <div id="cf-timer-line">Ready</div>
   </header>
 
   <div class="setting-item zen">
-    <span class="setting-label" id="zenModeLabel">Zen Mode</span>
+    <span class="setting-label" id="zenModeLabel">Zen mode</span>
     <label class="switch">
       <input type="checkbox" id="zenMode" aria-labelledby="zenModeLabel">
       <span class="tag"></span>
     </label>
   </div>
 
-  <div class="section-label">Hide</div>
+  <div class="section-label">Theme</div>
+  <div class="swatches" id="cf-themes" role="radiogroup" aria-label="Theme color"></div>
+
+  <div class="section-label">Hide on YouTube</div>
 
   <div class="setting-item">
     <span class="setting-label" id="hideShortsLabel">Shorts</span>
@@ -225,7 +259,7 @@
   </div>
 
   <div class="setting-item">
-    <span class="setting-label" id="hideSidebarLabel">Related Sidebar</span>
+    <span class="setting-label" id="hideSidebarLabel">Related videos</span>
     <label class="switch">
       <input type="checkbox" id="hideSidebar" aria-labelledby="hideSidebarLabel" checked>
       <span class="tag"></span>
@@ -241,7 +275,7 @@
   </div>
 
   <div class="setting-item">
-    <span class="setting-label" id="hideHomeFeedLabel">Home Feed</span>
+    <span class="setting-label" id="hideHomeFeedLabel">Home feed</span>
     <label class="switch">
       <input type="checkbox" id="hideHomeFeed" aria-labelledby="hideHomeFeedLabel">
       <span class="tag"></span>
@@ -249,7 +283,7 @@
   </div>
 
   <div class="setting-item">
-    <span class="setting-label" id="hideEndCardsLabel">End Cards</span>
+    <span class="setting-label" id="hideEndCardsLabel">End cards</span>
     <label class="switch">
       <input type="checkbox" id="hideEndCards" aria-labelledby="hideEndCardsLabel">
       <span class="tag"></span>
@@ -257,20 +291,16 @@
   </div>
 
   <div class="setting-item">
-    <span class="setting-label" id="hideNotifBellLabel">Notification Bell</span>
+    <span class="setting-label" id="hideNotifBellLabel">Notification bell</span>
     <label class="switch">
       <input type="checkbox" id="hideNotifBell" aria-labelledby="hideNotifBellLabel">
       <span class="tag"></span>
     </label>
   </div>
 
-  <div class="section-label">This Week</div>
+  <div class="section-label">This week</div>
   <div class="bars" id="cf-stats-bars"></div>
   <div id="cf-stats-totals"></div>
-
-  <footer>
-    Silence the noise
-  </footer>
 
   <script src="popup.js"></script>
 </body>

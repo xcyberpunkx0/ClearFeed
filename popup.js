@@ -12,6 +12,16 @@ const SETTING_DEFAULTS = {
 const TIMER_KEY = 'cf-timer-v2';
 const STATS_KEY = 'cf-stats';
 
+// Mirror of content.js THEMES — keep the two maps in sync.
+const THEMES = {
+  aurora: ['#3ea6ff', '#a78bfa'],
+  sunset: ['#ff6b6b', '#ffa94d'],
+  mint:   ['#34d399', '#22d3ee'],
+  rose:   ['#ec4899', '#8b5cf6'],
+  gold:   ['#fbbf24', '#f59e0b'],
+  ember:  ['#f43f5e', '#fb923c']
+};
+
 function notifyTabs() {
   chrome.tabs.query({ url: '*://*.youtube.com/*' }, (tabs) => {
     tabs.forEach(tab => {
@@ -32,6 +42,42 @@ async function initSettings() {
   }
 }
 
+/* ─── Theme picker ─── */
+async function initTheme() {
+  const wrap = document.getElementById('cf-themes');
+  if (!wrap) return;
+
+  const apply = (name) => {
+    const g = THEMES[name] || THEMES.aurora;
+    document.documentElement.style.setProperty('--grad-a', g[0]);
+    document.documentElement.style.setProperty('--grad-b', g[1]);
+    wrap.querySelectorAll('.swatch').forEach(b => {
+      const on = b.dataset.theme === name;
+      b.classList.toggle('on', on);
+      b.setAttribute('aria-checked', String(on));
+    });
+  };
+
+  const data = await chrome.storage.sync.get('theme');
+  let current = data.theme || 'aurora';
+
+  for (const [name, g] of Object.entries(THEMES)) {
+    const b = document.createElement('button');
+    b.className = 'swatch';
+    b.dataset.theme = name;
+    b.style.background = `linear-gradient(135deg, ${g[0]}, ${g[1]})`;
+    b.setAttribute('role', 'radio');
+    b.setAttribute('aria-label', `${name} theme`);
+    b.addEventListener('click', () => {
+      current = name;
+      apply(name);
+      chrome.storage.sync.set({ theme: name });
+    });
+    wrap.appendChild(b);
+  }
+  apply(current);
+}
+
 /* ─── Timer mirror ─── */
 function initTimer() {
   const el = document.getElementById('cf-timer-line');
@@ -39,21 +85,21 @@ function initTimer() {
   let t = null;
 
   const render = () => {
-    if (!t) { el.textContent = 'Idle — Ready'; return; }
+    if (!t) { el.textContent = 'Ready'; return; }
     const rem = t.running && t.endsAt
       ? Math.max(0, Math.round((t.endsAt - Date.now()) / 1000))
       : t.remaining;
     const mmss = `${String(Math.floor(rem / 60)).padStart(2, '0')}:${String(rem % 60).padStart(2, '0')}`;
     if (t.running) {
       el.textContent = t.phase === 'break'
-        ? `On Break — ${mmss}`
-        : `Ses·${String(t.session + 1).padStart(2, '0')} — ${mmss}`;
+        ? `On break · ${mmss}`
+        : `Focusing · ${mmss}`;
     } else if (t.completed) {
-      el.textContent = t.phase === 'focus' ? 'Session Complete' : 'Break Over';
+      el.textContent = t.phase === 'focus' ? 'Session complete' : 'Break over';
     } else if (rem > 0 && rem < t.total) {
-      el.textContent = `Paused — ${mmss}`;
+      el.textContent = `Paused · ${mmss}`;
     } else {
-      el.textContent = 'Idle — Ready';
+      el.textContent = 'Ready';
     }
   };
 
@@ -118,11 +164,12 @@ async function initStats() {
     totalsEl.append(document.createElement('br'));
   };
   line([[focused, 'focused'], [sum('sessions'), 'sessions']]);
-  line([[sum('tasksDone'), 'tasks done'], [sum('shortsHidden'), 'shorts dodged']]);
+  line([[sum('tasksDone'), 'tasks done'], [sum('shortsHidden'), 'Shorts hidden']]);
 }
 
 document.addEventListener('DOMContentLoaded', () => {
   initSettings();
+  initTheme();
   initTimer();
   initStats();
 });
