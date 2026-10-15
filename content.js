@@ -18,10 +18,9 @@ const ZEN_ID = 'cf-zen';
 const STYLES_ID = 'cf-styles';
 const TASKS_KEY = 'cf-tasks';
 const TIMER_KEY = 'cf-timer-v2';
-// YouTube's October 2026 watch layout puts comments and the description in a
-// fixed right-hand side rail and moves related videos into a grid under the
-// player. Older builds only have #fixed-side-menu, newer ones the view model.
-const SIDE_RAIL = ':is(#fixed-side-menu, .ytSideRailViewModelHost)';
+// Read by layout.js (page world, document_start) to decide whether to switch
+// off YouTube's October 2026 watch layout. See SETTING_DEFAULTS.classicLayout.
+const CLASSIC_LAYOUT_KEY = 'cf-classic-layout';
 const SHORTS_SELECTORS = [
   'ytd-reel-shelf-renderer', 'ytd-rich-shelf-renderer[is-shorts]',
   'ytd-rich-section-renderer:has(> #content > ytd-rich-shelf-renderer[is-shorts])',
@@ -61,7 +60,8 @@ const SETTING_DEFAULTS = {
   hideComments: false,
   hideHomeFeed: false,
   hideEndCards: false,
-  hideNotifBell: false
+  hideNotifBell: false,
+  classicLayout: true
 };
 
 let config = { ...SETTING_DEFAULTS };
@@ -180,22 +180,24 @@ function applyProductionStyles() {
 
   if (effective('hideSidebar') && window.location.pathname.includes('/watch')) {
     // #related lives in #secondary or, in the new layout, in #below under the
-    // player. Engagement panels are only hidden outside the side rail, because
-    // the rail is built from them (description, comments); comments have their
-    // own toggle.
+    // player. Engagement panels (description, comments, Ask, transcript) stay
+    // visible; only the ad panel goes. When the viewer opens one in the classic
+    // column, it moves above the dashboard instead of scrolling under it.
     css += `
       ytd-watch-flexy #related, ytd-watch-next-secondary-results-renderer,
-      ytd-playlist-panel-renderer, ytd-live-chat-frame,
-      ytd-engagement-panel-section-list-renderer:not(
-        [target-id="engagement-panel-comments-section"],
-        [target-id="engagement-panel-structured-description"],
-        ${SIDE_RAIL} *
-      ) {
+      ytd-playlist-panel-renderer, ytd-live-chat-frame {
         visibility: hidden !important; opacity: 0 !important; pointer-events: none !important;
         height: 1px !important; overflow: hidden !important; display: block !important;
       }
+      ytd-engagement-panel-section-list-renderer[target-id="engagement-panel-ads"] { display: none !important; }
       html:not([data-cf-side-rail]) #secondary.ytd-watch-flexy { display: block !important; visibility: visible !important; }
       #cf-dash { position: sticky; top: 72px; height: calc(100vh - 96px); }
+      #secondary.ytd-watch-flexy:has(ytd-engagement-panel-section-list-renderer[visibility="ENGAGEMENT_PANEL_VISIBILITY_EXPANDED"]) {
+        display: flex !important; flex-direction: column;
+      }
+      #secondary.ytd-watch-flexy:has(ytd-engagement-panel-section-list-renderer[visibility="ENGAGEMENT_PANEL_VISIBILITY_EXPANDED"]) #cf-dash {
+        order: 1; position: relative; top: 0; height: auto; margin-top: 12px;
+      }
     `;
   } else {
     css += `
@@ -256,11 +258,15 @@ function applyProductionStyles() {
       padding: 20px; margin-right: 12px; overflow-y: auto; scrollbar-width: none;
     }
     #cf-dash::-webkit-scrollbar { display: none; }
-    /* Side rail (new layout): a compact card above YouTube's panels. */
-    #cf-dash[data-mount="rail"] {
-      position: relative; top: 0; height: auto; max-height: 60vh;
-      flex: 0 0 auto; margin: 0 0 12px; box-sizing: border-box;
+    /* New layout without room on the right: a wide card under the video
+       title, where the related grid was. Timer on the right, tasks on the left. */
+    #cf-dash[data-mount="below"] {
+      position: relative; top: 0; height: auto; margin: 16px 0 24px;
+      display: grid; grid-template-columns: minmax(0, 1fr) minmax(240px, 320px);
+      column-gap: 28px; align-items: start;
     }
+    #cf-dash[data-mount="below"] > :not(.cf-timer-section) { grid-column: 1; }
+    #cf-dash[data-mount="below"] > .cf-timer-section { grid-column: 2; grid-row: 1 / span 3; margin-top: 0 !important; padding-top: 4px; }
     #cf-dash :is(button, [tabindex], input):focus-visible, #cf-zen input:focus-visible { outline: 2px solid var(--grad-a); outline-offset: 2px; }
 
     .cf-grad-ink {
@@ -594,20 +600,32 @@ function createZen() {
 /* ─── 6. Core Engine ─── */
 const isLaidOut = (el, minWidth) => !!el && el.getBoundingClientRect().width >= minWidth;
 
-// The side rail only counts when it is actually on screen: #fixed-side-menu
-// can exist with zero width outside the new layout, and the rail collapses
-// when the viewer dismisses its panels.
+// YouTube's October 2026 watch layout (when Classic layout is off, or
+// layout.js stops working) puts the description, comments and Ask in a fixed
+// right-hand side rail and the related grid under the player. The rail only
+// counts when it is on screen: #fixed-side-menu can exist with zero width, and
+// it collapses when the viewer dismisses its panels. ClearFeed never mounts
+// inside the rail, so YouTube's panels keep working.
 function findSideRail() {
   const rail = document.querySelector('#fixed-side-menu') || document.querySelector('.ytSideRailViewModelHost');
   return isLaidOut(rail, 200) ? rail : null;
 }
 
-// Classic layout: the right-hand #secondary column. New layout: #secondary if
-// YouTube still gives it room, otherwise the top of the side rail.
+// Classic layout: top of the right-hand #secondary column. New layout:
+// #secondary if YouTube still gives it room, otherwise under the video title.
 function findDashHost(rail) {
   const secondary = document.querySelector('ytd-watch-flexy #secondary');
-  if (rail && !isLaidOut(secondary, 240)) return { el: rail, mount: 'rail' };
-  return secondary ? { el: secondary, mount: 'column' } : null;
+  const below = document.querySelector('ytd-watch-flexy #below');
+  if (rail && below && !isLaidOut(secondary, 240)) {
+    return {
+      el: below, mount: 'below',
+      place: (dash) => {
+        const meta = below.querySelector(':scope > ytd-watch-metadata');
+        if (meta) meta.after(dash); else below.prepend(dash);
+      }
+    };
+  }
+  return secondary ? { el: secondary, mount: 'column', place: (dash) => secondary.prepend(dash) } : null;
 }
 
 function syncUI() {
@@ -635,7 +653,7 @@ function syncUI() {
 
   const dash = document.getElementById(APP_ID) || createDashboard();
   if (dash.dataset.mount !== host.mount) dash.dataset.mount = host.mount;
-  if (!host.el.contains(dash)) host.el.prepend(dash);
+  if (!host.el.contains(dash)) host.place(dash);
 }
 
 async function boot() {
@@ -645,6 +663,7 @@ async function boot() {
     config[k] = data[k] ?? SETTING_DEFAULTS[k];
   }
   await Persistence.loadTasks();
+  try { localStorage.setItem(CLASSIC_LAYOUT_KEY, config.classicLayout ? '1' : '0'); } catch {}
 
   applyProductionStyles();
   syncUI();

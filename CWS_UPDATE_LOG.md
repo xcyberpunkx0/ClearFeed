@@ -7,10 +7,10 @@ Paste the section below at the end of the Detailed Description on the Chrome Web
 **What's New**
 
 v1.1.1
-* Works with YouTube's new watch-page layout (comments and description in a right-hand side panel, recommendations below the video).
-* The focus dashboard now appears at the top of the new side panel when YouTube's sidebar column is gone.
-* "Related videos" now also hides the recommendation grid below the video, and no longer blanks the new side panel.
-* "Comments" now also hides comments in the new side panel.
+* New "Classic layout" option (on by default): switches YouTube's new watch page back to the classic one, with comments under the video and room on the right for the focus dashboard. Turn it off in the popup to keep YouTube's new layout.
+* With YouTube's new layout, the dashboard sits under the video title, where the recommendations used to be. YouTube's side panel (description, comments, Ask) is left untouched.
+* Description, comments, Ask, transcript and other YouTube panels are no longer hidden by "Related videos"; opened panels appear above the dashboard.
+* "Related videos" now also hides the recommendation grid below the video. "Comments" now also hides comments in the new side panel.
 * Shorts hiding covers the newer Shorts shelves and Shorts in the recommendation grid.
 
 v1.1.0
