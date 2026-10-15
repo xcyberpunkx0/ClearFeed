@@ -6,6 +6,13 @@ Paste the section below at the end of the Detailed Description on the Chrome Web
 
 **What's New**
 
+v1.1.1
+* Works with YouTube's new watch-page layout (comments and description in a right-hand side panel, recommendations below the video).
+* The focus dashboard now appears at the top of the new side panel when YouTube's sidebar column is gone.
+* "Related videos" now also hides the recommendation grid below the video, and no longer blanks the new side panel.
+* "Comments" now also hides comments in the new side panel.
+* Shorts hiding covers the newer Shorts shelves and Shorts in the recommendation grid.
+
 v1.1.0
 * All-new look: OLED-black dashboard with a dot-matrix clock and refreshed typography.
 * Theme colors: pick from six gradient themes (Aurora, Sunset, Mint, Rose, Gold, Ember) in the popup — the clock, timer, toggles, and buttons all follow.

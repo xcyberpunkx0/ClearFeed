@@ -1,4 +1,4 @@
-// popup.js (v1.1.0)
+// popup.js (v1.1.1)
 
 const SETTING_DEFAULTS = {
   zenMode: false,

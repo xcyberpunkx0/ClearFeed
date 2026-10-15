@@ -1,5 +1,5 @@
 /**
- * ClearFeed - background.js (v1.1.0)
+ * ClearFeed - background.js (v1.1.1)
  * Service worker: owns the global Pomodoro timer, badge, notifications, and stats.
  *
  * Timer state lives in chrome.storage.session (cleared on browser restart —

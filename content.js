@@ -1,5 +1,5 @@
 /**
- * ClearFeed - content.js (v1.1.0)
+ * ClearFeed - content.js (v1.1.1)
  * OLED identity: true-black surfaces, Sora UI text, Doto dot-matrix display
  * digits, and a user-selected gradient theme (THEMES / sync key 'theme') that
  * tints every accent — clock, dial, toggles, chips, buttons, task spines.
@@ -18,6 +18,24 @@ const ZEN_ID = 'cf-zen';
 const STYLES_ID = 'cf-styles';
 const TASKS_KEY = 'cf-tasks';
 const TIMER_KEY = 'cf-timer-v2';
+// YouTube's October 2026 watch layout puts comments and the description in a
+// fixed right-hand side rail and moves related videos into a grid under the
+// player. Older builds only have #fixed-side-menu, newer ones the view model.
+const SIDE_RAIL = ':is(#fixed-side-menu, .ytSideRailViewModelHost)';
+const SHORTS_SELECTORS = [
+  'ytd-reel-shelf-renderer', 'ytd-rich-shelf-renderer[is-shorts]',
+  'ytd-rich-section-renderer:has(> #content > ytd-rich-shelf-renderer[is-shorts])',
+  'ytm-shorts-lockup-view-model', 'ytm-shorts-lockup-view-model-v2',
+  '.shortsLockupViewModelHostOutsideMetadata', 'ytd-reel-item-renderer', '[is-shorts]',
+  'grid-shelf-view-model:has(a[href^="/shorts/"])',
+  'yt-lockup-view-model:has(a[href^="/shorts/"])',
+  'ytd-compact-video-renderer:has(a[href^="/shorts/"])',
+  'ytd-guide-entry-renderer:has(a[href*="/shorts"])',
+  'ytd-mini-guide-entry-renderer[aria-label*="Shorts"]',
+  'ytd-video-renderer:has(a[href*="/shorts/"])',
+  '#shorts-container', 'ytd-rich-item-renderer:has(a[href*="/shorts/"])',
+  'span[title="Shorts"]', 'a[title="Shorts"]'
+];
 // Bundled identity fonts (declared in web_accessible_resources):
 // Sora carries all UI text, Doto is the dot-matrix display face for the
 // clock, countdown digits, and task indices.
@@ -101,7 +119,9 @@ const Stats = {
   countShorts: () => {
     if (!effective('hideShorts') || Stats.countedUrl === location.href) return;
     const n = document.querySelectorAll(
-      'ytd-rich-item-renderer:has(a[href*="/shorts/"]), ytd-video-renderer:has(a[href*="/shorts/"]), ytm-shorts-lockup-view-model, ytd-reel-shelf-renderer'
+      'ytd-rich-item-renderer:has(a[href*="/shorts/"]), ytd-video-renderer:has(a[href*="/shorts/"]), ' +
+      'yt-lockup-view-model:has(a[href^="/shorts/"]), ytm-shorts-lockup-view-model, ' +
+      'ytd-reel-shelf-renderer, grid-shelf-view-model:has(a[href^="/shorts/"])'
     ).length;
     if (n > 0) {
       Stats.countedUrl = location.href;
@@ -155,26 +175,26 @@ function applyProductionStyles() {
 
   // Distraction Removal (each rule gated by Zen/Focus + pref)
   if (effective('hideShorts')) {
-    css += `
-      ytd-reel-shelf-renderer, ytd-rich-shelf-renderer[is-shorts],
-      ytm-shorts-lockup-view-model, ytm-shorts-lockup-view-model-v2,
-      .shortsLockupViewModelHostOutsideMetadata, ytd-reel-item-renderer, [is-shorts],
-      ytd-guide-entry-renderer:has(a[href*="/shorts"]),
-      ytd-mini-guide-entry-renderer[aria-label*="Shorts"],
-      ytd-video-renderer:has(a[href*="/shorts/"]),
-      #shorts-container, ytd-rich-item-renderer:has(a[href*="/shorts/"]),
-      span[title="Shorts"], a[title="Shorts"] { display: none !important; }
-    `;
+    css += `${SHORTS_SELECTORS.join(',\n')} { display: none !important; }\n`;
   }
 
   if (effective('hideSidebar') && window.location.pathname.includes('/watch')) {
+    // #related lives in #secondary or, in the new layout, in #below under the
+    // player. Engagement panels are only hidden outside the side rail, because
+    // the rail is built from them (description, comments); comments have their
+    // own toggle.
     css += `
-      #secondary #related, ytd-watch-next-secondary-results-renderer,
-      ytd-playlist-panel-renderer, ytd-engagement-panel-section-list-renderer, ytd-live-chat-frame {
+      ytd-watch-flexy #related, ytd-watch-next-secondary-results-renderer,
+      ytd-playlist-panel-renderer, ytd-live-chat-frame,
+      ytd-engagement-panel-section-list-renderer:not(
+        [target-id="engagement-panel-comments-section"],
+        [target-id="engagement-panel-structured-description"],
+        ${SIDE_RAIL} *
+      ) {
         visibility: hidden !important; opacity: 0 !important; pointer-events: none !important;
         height: 1px !important; overflow: hidden !important; display: block !important;
       }
-      #secondary.ytd-watch-flexy { display: block !important; visibility: visible !important; }
+      html:not([data-cf-side-rail]) #secondary.ytd-watch-flexy { display: block !important; visibility: visible !important; }
       #cf-dash { position: sticky; top: 72px; height: calc(100vh - 96px); }
     `;
   } else {
@@ -185,7 +205,7 @@ function applyProductionStyles() {
   }
 
   if (effective('hideComments')) {
-    css += `ytd-comments#comments { display: none !important; }\n`;
+    css += `ytd-comments#comments, ytd-engagement-panel-section-list-renderer[target-id="engagement-panel-comments-section"] { display: none !important; }\n`;
   }
   if (effective('hideEndCards')) {
     css += `.ytp-ce-element, .ytp-endscreen-content, .ytp-cards-button, .ytp-cards-button-shape { display: none !important; }\n`;
@@ -236,6 +256,11 @@ function applyProductionStyles() {
       padding: 20px; margin-right: 12px; overflow-y: auto; scrollbar-width: none;
     }
     #cf-dash::-webkit-scrollbar { display: none; }
+    /* Side rail (new layout): a compact card above YouTube's panels. */
+    #cf-dash[data-mount="rail"] {
+      position: relative; top: 0; height: auto; max-height: 60vh;
+      flex: 0 0 auto; margin: 0 0 12px; box-sizing: border-box;
+    }
     #cf-dash :is(button, [tabindex], input):focus-visible, #cf-zen input:focus-visible { outline: 2px solid var(--grad-a); outline-offset: 2px; }
 
     .cf-grad-ink {
@@ -567,6 +592,24 @@ function createZen() {
 }
 
 /* ─── 6. Core Engine ─── */
+const isLaidOut = (el, minWidth) => !!el && el.getBoundingClientRect().width >= minWidth;
+
+// The side rail only counts when it is actually on screen: #fixed-side-menu
+// can exist with zero width outside the new layout, and the rail collapses
+// when the viewer dismisses its panels.
+function findSideRail() {
+  const rail = document.querySelector('#fixed-side-menu') || document.querySelector('.ytSideRailViewModelHost');
+  return isLaidOut(rail, 200) ? rail : null;
+}
+
+// Classic layout: the right-hand #secondary column. New layout: #secondary if
+// YouTube still gives it room, otherwise the top of the side rail.
+function findDashHost(rail) {
+  const secondary = document.querySelector('ytd-watch-flexy #secondary');
+  if (rail && !isLaidOut(secondary, 240)) return { el: rail, mount: 'rail' };
+  return secondary ? { el: secondary, mount: 'column' } : null;
+}
+
 function syncUI() {
   // Zen overlay (homepage only)
   const zenExisting = document.getElementById(ZEN_ID);
@@ -583,15 +626,16 @@ function syncUI() {
     return;
   }
 
-  const host = document.querySelector('ytd-watch-flexy #secondary');
+  const rail = findSideRail();
+  const root = document.documentElement;
+  if (root.hasAttribute('data-cf-side-rail') !== !!rail) root.toggleAttribute('data-cf-side-rail', !!rail);
+
+  const host = findDashHost(rail);
   if (!host) return;
 
-  const existing = document.getElementById(APP_ID);
-  if (existing) {
-    if (!host.contains(existing)) host.prepend(existing);
-  } else {
-    host.prepend(createDashboard());
-  }
+  const dash = document.getElementById(APP_ID) || createDashboard();
+  if (dash.dataset.mount !== host.mount) dash.dataset.mount = host.mount;
+  if (!host.el.contains(dash)) host.el.prepend(dash);
 }
 
 async function boot() {
