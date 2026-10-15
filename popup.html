@@ -121,6 +121,10 @@
       font-size: 13px;
     }
 
+    .setting-hint {
+      display: block; font-size: 11px; margin-top: 2px; opacity: 0.6;
+    }
+
     .setting-item.zen .setting-label {
       font-weight: 600;
     }
@@ -247,6 +251,16 @@
 
   <div class="section-label">Theme</div>
   <div class="swatches" id="cf-themes" role="radiogroup" aria-label="Theme color"></div>
+
+  <div class="setting-item">
+    <span class="setting-label" id="classicLayoutLabel">Classic layout
+      <span class="setting-hint" id="classicLayoutHint">Comments under the video, dashboard on the right</span>
+    </span>
+    <label class="switch">
+      <input type="checkbox" id="classicLayout" aria-labelledby="classicLayoutLabel" checked>
+      <span class="tag"></span>
+    </label>
+  </div>
 
   <div class="section-label">Hide on YouTube</div>
 

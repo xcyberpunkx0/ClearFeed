@@ -11,7 +11,14 @@
     "default_popup": "popup.html",
     "default_icon": "icons/png/image.png"
   },
+  "minimum_chrome_version": "111",
   "content_scripts": [
+    {
+      "matches": ["*://www.youtube.com/*"],
+      "js": ["layout.js"],
+      "run_at": "document_start",
+      "world": "MAIN"
+    },
     {
       "matches": ["*://*.youtube.com/*"],
       "js": ["content.js"],
