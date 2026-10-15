@@ -131,6 +131,7 @@ const Stats = {
 };
 
 /* ─── 3. Utility Methods ─── */
+const SVG_NS = 'http://www.w3.org/2000/svg';
 const UI = {
   create: (tag, cls, txt) => {
     const e = document.createElement(tag);
@@ -190,12 +191,12 @@ function applyProductionStyles() {
         height: 1px !important; overflow: hidden !important; display: block !important;
       }
       ytd-engagement-panel-section-list-renderer[target-id="engagement-panel-ads"] { display: none !important; }
-      html:not([data-cf-side-rail]) #secondary.ytd-watch-flexy { display: block !important; visibility: visible !important; }
+      html:not([data-cf-layout="new"]) #secondary.ytd-watch-flexy { display: block !important; visibility: visible !important; }
       #cf-dash { position: sticky; top: 72px; height: calc(100vh - 96px); }
-      #secondary.ytd-watch-flexy:has(ytd-engagement-panel-section-list-renderer[visibility="ENGAGEMENT_PANEL_VISIBILITY_EXPANDED"]) {
+      html:not([data-cf-layout="new"]) #secondary.ytd-watch-flexy:has(ytd-engagement-panel-section-list-renderer[visibility="ENGAGEMENT_PANEL_VISIBILITY_EXPANDED"]) {
         display: flex !important; flex-direction: column;
       }
-      #secondary.ytd-watch-flexy:has(ytd-engagement-panel-section-list-renderer[visibility="ENGAGEMENT_PANEL_VISIBILITY_EXPANDED"]) #cf-dash {
+      html:not([data-cf-layout="new"]) #secondary.ytd-watch-flexy:has(ytd-engagement-panel-section-list-renderer[visibility="ENGAGEMENT_PANEL_VISIBILITY_EXPANDED"]) #cf-dash {
         order: 1; position: relative; top: 0; height: auto; margin-top: 12px;
       }
     `;
@@ -258,6 +259,22 @@ function applyProductionStyles() {
       padding: 20px; margin-right: 12px; overflow-y: auto; scrollbar-width: none;
     }
     #cf-dash::-webkit-scrollbar { display: none; }
+    /* New layout: compact card at the top of YouTube's panel column, so the
+       description, comments and Ask panels keep most of the height. */
+    #cf-dash[data-mount="panel"] {
+      position: relative; top: 0; height: auto; flex: 0 0 auto;
+      margin: 0 0 12px; padding: 14px 16px; box-sizing: border-box;
+    }
+    #cf-dash[data-mount="panel"] .cf-header { padding-bottom: 10px; }
+    #cf-dash[data-mount="panel"] .cf-clock { font-size: 26px; }
+    #cf-dash[data-mount="panel"] .cf-focus-row { padding: 8px 0; }
+    #cf-dash[data-mount="panel"] .cf-tasks { padding: 8px 0 2px; }
+    #cf-dash[data-mount="panel"] #cf-task-list { max-height: 132px; overflow-y: auto; scrollbar-width: thin; }
+    #cf-dash[data-mount="panel"] .cf-timer-section { padding: 10px 0 0; margin-top: 0 !important; }
+    #cf-dash[data-mount="panel"] .cf-timer-digits { font-size: 34px; }
+    #cf-dash[data-mount="panel"] .cf-bar { margin-top: 10px; }
+    #cf-dash[data-mount="panel"] .cf-timer-presets { margin: 10px 0 2px; }
+    #cf-dash[data-mount="panel"] #cf-timer-btn { margin: 10px auto 0 !important; padding: 7px 22px; }
     /* New layout without room on the right: a wide card under the video
        title, where the related grid was. Timer on the right, tasks on the left. */
     #cf-dash[data-mount="below"] {
@@ -497,7 +514,15 @@ function createDashboard() {
   taskHeader.style.cssText = 'display:flex; align-items:center; justify-content:space-between;';
   taskHeader.appendChild(UI.create('div', 'cf-tasks-title', 'Tasks'));
   const addBtn = UI.create('button', 'cf-add-btn');
-  addBtn.innerHTML = '<svg width="11" height="11" viewBox="0 0 11 11" aria-hidden="true"><path d="M5.5 1v9M1 5.5h9" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>';
+  // Built node by node: YouTube enforces Trusted Types, so no innerHTML.
+  const plus = document.createElementNS(SVG_NS, 'svg');
+  plus.setAttribute('width', '11'); plus.setAttribute('height', '11');
+  plus.setAttribute('viewBox', '0 0 11 11'); plus.setAttribute('aria-hidden', 'true');
+  const plusPath = document.createElementNS(SVG_NS, 'path');
+  plusPath.setAttribute('d', 'M5.5 1v9M1 5.5h9'); plusPath.setAttribute('stroke', 'currentColor');
+  plusPath.setAttribute('stroke-width', '1.5'); plusPath.setAttribute('stroke-linecap', 'round');
+  plus.appendChild(plusPath);
+  addBtn.appendChild(plus);
   addBtn.setAttribute('aria-label', 'Add task');
   taskHeader.appendChild(addBtn);
 
@@ -509,7 +534,7 @@ function createDashboard() {
 
   const list = UI.create('div'); list.id = 'cf-task-list';
   const render = () => {
-    list.innerHTML = '';
+    list.replaceChildren();
     tasks.forEach((t, i) => {
       const id = t.id;
       const item = UI.create('div', `cf-task${t.done ? ' done' : ''}`);
@@ -561,11 +586,16 @@ function createDashboard() {
   // Hero countdown: big centered digits over a thin gradient progress bar.
   const ring = UI.create('div', 'cf-timer-ring');
   ring.id = 'cf-timer-ring';
-  ring.innerHTML = `
-    <div id="cf-timer-val" class="cf-timer-digits cf-grad-ink">25:00</div>
-    <div id="cf-timer-label" class="cf-label" style="text-align:center; margin-top:6px;">Focus</div>
-    <div class="cf-bar"><div id="cf-timer-fill"></div></div>
-  `;
+  const digits = UI.create('div', 'cf-timer-digits cf-grad-ink', '25:00');
+  digits.id = 'cf-timer-val';
+  const phaseLabel = UI.create('div', 'cf-label', 'Focus');
+  phaseLabel.id = 'cf-timer-label';
+  phaseLabel.style.cssText = 'text-align:center; margin-top:6px;';
+  const bar = UI.create('div', 'cf-bar');
+  const fill = UI.create('div');
+  fill.id = 'cf-timer-fill';
+  bar.appendChild(fill);
+  ring.append(digits, phaseLabel, bar);
 
   const startBtn = UI.create('button', 'cf-btn', 'Start');
   startBtn.id = 'cf-timer-btn';
@@ -600,32 +630,40 @@ function createZen() {
 /* ─── 6. Core Engine ─── */
 const isLaidOut = (el, minWidth) => !!el && el.getBoundingClientRect().width >= minWidth;
 
-// YouTube's October 2026 watch layout (when Classic layout is off, or
-// layout.js stops working) puts the description, comments and Ask in a fixed
-// right-hand side rail and the related grid under the player. The rail only
-// counts when it is on screen: #fixed-side-menu can exist with zero width, and
-// it collapses when the viewer dismisses its panels. ClearFeed never mounts
-// inside the rail, so YouTube's panels keep working.
-function findSideRail() {
-  const rail = document.querySelector('#fixed-side-menu') || document.querySelector('.ytSideRailViewModelHost');
-  return isLaidOut(rail, 200) ? rail : null;
+// YouTube's October 2026 watch layout ("split scroll", when Classic layout is
+// off or layout.js stops working): #secondary becomes a fixed overlay whose
+// #secondary-inner column holds the description, comments and Ask panels, a
+// 48px tab strip (#fixed-side-menu) sits at the far right, and #related moves
+// under the video into #below.
+function isNewLayout(flexy, secondary) {
+  return flexy.hasAttribute('split-scroll') || flexy.hasAttribute('using-fixed-panel') ||
+    (!!secondary && getComputedStyle(secondary).position === 'fixed');
 }
 
-// Classic layout: top of the right-hand #secondary column. New layout:
-// #secondary if YouTube still gives it room, otherwise under the video title.
-function findDashHost(rail) {
-  const secondary = document.querySelector('ytd-watch-flexy #secondary');
-  const below = document.querySelector('ytd-watch-flexy #below');
-  if (rail && below && !isLaidOut(secondary, 240)) {
-    return {
-      el: below, mount: 'below',
-      place: (dash) => {
-        const meta = below.querySelector(':scope > ytd-watch-metadata');
-        if (meta) meta.after(dash); else below.prepend(dash);
-      }
-    };
+// Classic: top of the #secondary column. New layout: a compact card at the top
+// of the panel column while a panel is open; when the viewer closes it, YouTube
+// slides the column off screen and widens the video, so the dashboard moves
+// under the video title instead.
+function findDashHost() {
+  const flexy = document.querySelector('ytd-watch-flexy');
+  if (!flexy) return null;
+  const secondary = flexy.querySelector('#secondary');
+  if (!isNewLayout(flexy, secondary)) {
+    return secondary && { layout: 'classic', mount: 'column', el: secondary, place: (dash) => secondary.prepend(dash) };
   }
-  return secondary ? { el: secondary, mount: 'column', place: (dash) => secondary.prepend(dash) } : null;
+  const inner = flexy.querySelector('#secondary-inner');
+  if (flexy.hasAttribute('engagement-panel-expanded') && isLaidOut(inner, 240)) {
+    return { layout: 'new', mount: 'panel', el: inner, place: (dash) => inner.prepend(dash) };
+  }
+  const below = flexy.querySelector('#below');
+  if (!below) return null;
+  return {
+    layout: 'new', mount: 'below', el: below,
+    place: (dash) => {
+      const meta = below.querySelector('ytd-watch-metadata');
+      if (meta) meta.after(dash); else below.prepend(dash);
+    }
+  };
 }
 
 function syncUI() {
@@ -644,12 +682,10 @@ function syncUI() {
     return;
   }
 
-  const rail = findSideRail();
-  const root = document.documentElement;
-  if (root.hasAttribute('data-cf-side-rail') !== !!rail) root.toggleAttribute('data-cf-side-rail', !!rail);
-
-  const host = findDashHost(rail);
+  const host = findDashHost();
   if (!host) return;
+  const root = document.documentElement;
+  if (root.dataset.cfLayout !== host.layout) root.dataset.cfLayout = host.layout;
 
   const dash = document.getElementById(APP_ID) || createDashboard();
   if (dash.dataset.mount !== host.mount) dash.dataset.mount = host.mount;
@@ -684,7 +720,11 @@ function init() {
     syncScheduled = true;
     requestAnimationFrame(() => { syncScheduled = false; syncUI(); });
   });
-  observer.observe(document.documentElement, { childList: true, subtree: true });
+  // Opening/closing a panel in the new layout only flips attributes on ytd-watch-flexy.
+  observer.observe(document.documentElement, {
+    childList: true, subtree: true,
+    attributes: true, attributeFilter: ['engagement-panel-expanded', 'split-scroll']
+  });
 
   // Navigation, storage, and message listeners
   window.addEventListener('yt-navigate-finish', boot);
