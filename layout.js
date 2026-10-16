@@ -1,24 +1,17 @@
 /**
  * ClearFeed - layout.js (v1.1.1)
  * Runs in YouTube's own JavaScript world at document_start, before any YouTube
- * script. When "Classic layout" is on, it pins the experiment flags behind
- * YouTube's October 2026 watch page (comments/description in a right-hand side
- * rail, related videos in a grid under the player) to false, so YouTube renders
- * its classic watch page and the ClearFeed dashboard keeps its column.
- *
- * chrome.storage isn't reachable from this world and arrives too late anyway,
- * so content.js mirrors the setting into localStorage ('cf-classic-layout').
- * A change takes effect on the next page load.
+ * script. It pins the experiment flags behind YouTube's October 2026 watch
+ * page (comments/description in a fixed right-hand panel, related videos in a
+ * grid under the player) to false, so YouTube renders its classic watch page
+ * and the ClearFeed dashboard keeps its column. ClearFeed doesn't support the
+ * new layout.
  *
  * Flag list from the community uBlock Origin filter and Control Panel for
  * YouTube. If YouTube renames a flag, add the new name here.
  */
 (() => {
   'use strict';
-
-  try {
-    if (localStorage.getItem('cf-classic-layout') === '0') return;
-  } catch {}
 
   const FLAGS = {
     disable_theater_mode: false,

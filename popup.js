@@ -7,8 +7,7 @@ const SETTING_DEFAULTS = {
   hideComments: false,
   hideHomeFeed: false,
   hideEndCards: false,
-  hideNotifBell: false,
-  classicLayout: true
+  hideNotifBell: false
 };
 const TIMER_KEY = 'cf-timer-v2';
 const STATS_KEY = 'cf-stats';
@@ -39,10 +38,6 @@ async function initSettings() {
     el.checked = data[id] ?? SETTING_DEFAULTS[id];
     el.addEventListener('change', (e) => {
       chrome.storage.sync.set({ [id]: e.target.checked }, notifyTabs);
-      if (id === 'classicLayout') {
-        const hint = document.getElementById('classicLayoutHint');
-        if (hint) hint.textContent = 'Reload YouTube to apply';
-      }
     });
   }
 }

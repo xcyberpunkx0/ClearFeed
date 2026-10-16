@@ -18,9 +18,6 @@ const ZEN_ID = 'cf-zen';
 const STYLES_ID = 'cf-styles';
 const TASKS_KEY = 'cf-tasks';
 const TIMER_KEY = 'cf-timer-v2';
-// Read by layout.js (page world, document_start) to decide whether to switch
-// off YouTube's October 2026 watch layout. See SETTING_DEFAULTS.classicLayout.
-const CLASSIC_LAYOUT_KEY = 'cf-classic-layout';
 const SHORTS_SELECTORS = [
   'ytd-reel-shelf-renderer', 'ytd-rich-shelf-renderer[is-shorts]',
   'ytd-rich-section-renderer:has(> #content > ytd-rich-shelf-renderer[is-shorts])',
@@ -60,8 +57,7 @@ const SETTING_DEFAULTS = {
   hideComments: false,
   hideHomeFeed: false,
   hideEndCards: false,
-  hideNotifBell: false,
-  classicLayout: true
+  hideNotifBell: false
 };
 
 let config = { ...SETTING_DEFAULTS };
@@ -259,31 +255,6 @@ function applyProductionStyles() {
       padding: 20px; margin-right: 12px; overflow-y: auto; scrollbar-width: none;
     }
     #cf-dash::-webkit-scrollbar { display: none; }
-    /* New layout: compact card at the top of YouTube's panel column, so the
-       description, comments and Ask panels keep most of the height. */
-    #cf-dash[data-mount="panel"] {
-      position: relative; top: 0; height: auto; flex: 0 0 auto;
-      margin: 0 0 12px; padding: 14px 16px; box-sizing: border-box;
-    }
-    #cf-dash[data-mount="panel"] .cf-header { padding-bottom: 10px; }
-    #cf-dash[data-mount="panel"] .cf-clock { font-size: 26px; }
-    #cf-dash[data-mount="panel"] .cf-focus-row { padding: 8px 0; }
-    #cf-dash[data-mount="panel"] .cf-tasks { padding: 8px 0 2px; }
-    #cf-dash[data-mount="panel"] #cf-task-list { max-height: 132px; overflow-y: auto; scrollbar-width: thin; }
-    #cf-dash[data-mount="panel"] .cf-timer-section { padding: 10px 0 0; margin-top: 0 !important; }
-    #cf-dash[data-mount="panel"] .cf-timer-digits { font-size: 34px; }
-    #cf-dash[data-mount="panel"] .cf-bar { margin-top: 10px; }
-    #cf-dash[data-mount="panel"] .cf-timer-presets { margin: 10px 0 2px; }
-    #cf-dash[data-mount="panel"] #cf-timer-btn { margin: 10px auto 0 !important; padding: 7px 22px; }
-    /* New layout without room on the right: a wide card under the video
-       title, where the related grid was. Timer on the right, tasks on the left. */
-    #cf-dash[data-mount="below"] {
-      position: relative; top: 0; height: auto; margin: 16px 0 24px;
-      display: grid; grid-template-columns: minmax(0, 1fr) minmax(240px, 320px);
-      column-gap: 28px; align-items: start;
-    }
-    #cf-dash[data-mount="below"] > :not(.cf-timer-section) { grid-column: 1; }
-    #cf-dash[data-mount="below"] > .cf-timer-section { grid-column: 2; grid-row: 1 / span 3; margin-top: 0 !important; padding-top: 4px; }
     #cf-dash :is(button, [tabindex], input):focus-visible, #cf-zen input:focus-visible { outline: 2px solid var(--grad-a); outline-offset: 2px; }
 
     .cf-grad-ink {
@@ -628,42 +599,14 @@ function createZen() {
 }
 
 /* ─── 6. Core Engine ─── */
-const isLaidOut = (el, minWidth) => !!el && el.getBoundingClientRect().width >= minWidth;
-
-// YouTube's October 2026 watch layout ("split scroll", when Classic layout is
-// off or layout.js stops working): #secondary becomes a fixed overlay whose
-// #secondary-inner column holds the description, comments and Ask panels, a
-// 48px tab strip (#fixed-side-menu) sits at the far right, and #related moves
-// under the video into #below.
-function isNewLayout(flexy, secondary) {
+// ClearFeed only supports YouTube's classic watch page; layout.js switches the
+// October 2026 layout off. If YouTube serves the new layout anyway ("split
+// scroll": #secondary becomes a fixed overlay holding the description/comments
+// panels), don't mount the dashboard, since it would cover those panels.
+function isNewLayout(flexy) {
+  const secondary = flexy.querySelector('#secondary');
   return flexy.hasAttribute('split-scroll') || flexy.hasAttribute('using-fixed-panel') ||
     (!!secondary && getComputedStyle(secondary).position === 'fixed');
-}
-
-// Classic: top of the #secondary column. New layout: a compact card at the top
-// of the panel column while a panel is open; when the viewer closes it, YouTube
-// slides the column off screen and widens the video, so the dashboard moves
-// under the video title instead.
-function findDashHost() {
-  const flexy = document.querySelector('ytd-watch-flexy');
-  if (!flexy) return null;
-  const secondary = flexy.querySelector('#secondary');
-  if (!isNewLayout(flexy, secondary)) {
-    return secondary && { layout: 'classic', mount: 'column', el: secondary, place: (dash) => secondary.prepend(dash) };
-  }
-  const inner = flexy.querySelector('#secondary-inner');
-  if (flexy.hasAttribute('engagement-panel-expanded') && isLaidOut(inner, 240)) {
-    return { layout: 'new', mount: 'panel', el: inner, place: (dash) => inner.prepend(dash) };
-  }
-  const below = flexy.querySelector('#below');
-  if (!below) return null;
-  return {
-    layout: 'new', mount: 'below', el: below,
-    place: (dash) => {
-      const meta = below.querySelector('ytd-watch-metadata');
-      if (meta) meta.after(dash); else below.prepend(dash);
-    }
-  };
 }
 
 function syncUI() {
@@ -682,14 +625,20 @@ function syncUI() {
     return;
   }
 
-  const host = findDashHost();
-  if (!host) return;
+  const flexy = document.querySelector('ytd-watch-flexy');
+  if (!flexy) return;
+  const layout = isNewLayout(flexy) ? 'new' : 'classic';
   const root = document.documentElement;
-  if (root.dataset.cfLayout !== host.layout) root.dataset.cfLayout = host.layout;
+  if (root.dataset.cfLayout !== layout) root.dataset.cfLayout = layout;
+  if (layout === 'new') {
+    document.getElementById(APP_ID)?.remove();
+    return;
+  }
 
+  const host = flexy.querySelector('#secondary');
+  if (!host) return;
   const dash = document.getElementById(APP_ID) || createDashboard();
-  if (dash.dataset.mount !== host.mount) dash.dataset.mount = host.mount;
-  if (!host.el.contains(dash)) host.place(dash);
+  if (!host.contains(dash)) host.prepend(dash);
 }
 
 async function boot() {
@@ -699,7 +648,6 @@ async function boot() {
     config[k] = data[k] ?? SETTING_DEFAULTS[k];
   }
   await Persistence.loadTasks();
-  try { localStorage.setItem(CLASSIC_LAYOUT_KEY, config.classicLayout ? '1' : '0'); } catch {}
 
   applyProductionStyles();
   syncUI();
@@ -720,11 +668,7 @@ function init() {
     syncScheduled = true;
     requestAnimationFrame(() => { syncScheduled = false; syncUI(); });
   });
-  // Opening/closing a panel in the new layout only flips attributes on ytd-watch-flexy.
-  observer.observe(document.documentElement, {
-    childList: true, subtree: true,
-    attributes: true, attributeFilter: ['engagement-panel-expanded', 'split-scroll']
-  });
+  observer.observe(document.documentElement, { childList: true, subtree: true });
 
   // Navigation, storage, and message listeners
   window.addEventListener('yt-navigate-finish', boot);
