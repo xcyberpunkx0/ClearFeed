@@ -7,8 +7,7 @@ const SETTING_DEFAULTS = {
   hideComments: false,
   hideHomeFeed: false,
   hideEndCards: false,
-  hideNotifBell: false,
-  classicLayout: true
+  hideNotifBell: false
 };
 const TIMER_KEY = 'cf-timer-v2';
 const STATS_KEY = 'cf-stats';
@@ -39,10 +38,6 @@ async function initSettings() {
     el.checked = data[id] ?? SETTING_DEFAULTS[id];
     el.addEventListener('change', (e) => {
       chrome.storage.sync.set({ [id]: e.target.checked }, notifyTabs);
-      if (id === 'classicLayout') {
-        const hint = document.getElementById('classicLayoutHint');
-        if (hint) hint.textContent = 'Reload YouTube to apply';
-      }
     });
   }
 }
@@ -90,6 +85,7 @@ function initTimer() {
   let t = null;
 
   const render = () => {
+    el.dataset.state = t && t.running ? 'running' : '';
     if (!t) { el.textContent = 'Ready'; return; }
     const rem = t.running && t.endsAt
       ? Math.max(0, Math.round((t.endsAt - Date.now()) / 1000))
@@ -158,18 +154,25 @@ async function initStats() {
   const h = Math.floor(focusSec / 3600), m = Math.round((focusSec % 3600) / 60);
   const focused = h > 0 ? `${h}h ${m}m` : `${m}m`;
 
-  totalsEl.replaceChildren();
+  // Headline: focus time this week; then one line per pair of counts.
+  const big = document.createElement('div');
+  big.className = 'stat-big';
+  big.textContent = focused;
+  const caption = document.createElement('div');
+  caption.textContent = 'focused this week';
   const line = (pairs) => {
+    const row = document.createElement('div');
     pairs.forEach(([value, label], i) => {
-      if (i > 0) totalsEl.append(' · ');
+      if (i > 0) row.append(' · ');
       const b = document.createElement('b');
       b.textContent = String(value);
-      totalsEl.append(b, ` ${label}`);
+      row.append(b, ` ${label}`);
     });
-    totalsEl.append(document.createElement('br'));
+    return row;
   };
-  line([[focused, 'focused'], [sum('sessions'), 'sessions']]);
-  line([[sum('tasksDone'), 'tasks done'], [sum('shortsHidden'), 'Shorts hidden']]);
+  totalsEl.replaceChildren(big, caption,
+    line([[sum('sessions'), 'sessions'], [sum('tasksDone'), 'tasks']]),
+    line([[sum('shortsHidden'), 'Shorts hidden']]));
 }
 
 document.addEventListener('DOMContentLoaded', () => {
